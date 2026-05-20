@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AETHERIS — Venture Past Our Sky</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Core CDN Tech Stack -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+  <script src="https://unpkg.com/framer-motion@11.11.17/dist/framer-motion.js"></script>
+  
+  <script>
+    // Bind Framer Motion globally (FramerMotion gets window.Motion instead of vice versa)
+    window.FramerMotion = window.Motion || window.FramerMotion;
+    
+    // Custom Tailwind Configuration
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            heading: ["'Instrument Serif'", "serif"],
+            body: ["'Barlow'", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: '9999px', // Bare rounded becomes pill shape
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Absolute black base background */
+    body {
+      background-color: #000000;
+      color: #ffffff;
+      overflow-x: hidden;
+    }
+
+    /* Shared Liquid-Glass Styling Utility */
+    .liquid-glass {
+      background: rgba(255, 255, 255, 0.01);
+      background-blend-mode: luminosity;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: none;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .liquid-glass::before {
+      content: "";
+      position: absolute; 
+      inset: 0;
+      border-radius: inherit;
+      padding: 1.4px;
+      background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.45) 0%,
+        rgba(255, 255, 255, 0.15) 20%,
+        rgba(255, 255, 255, 0) 40%,
+        rgba(255, 255, 255, 0) 60%,
+        rgba(255, 255, 255, 0.15) 80%,
+        rgba(255, 255, 255, 0.45) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    /* Heavier blur glass variant for priority CTAs and high-contrast actions */
+    .liquid-glass-strong {
+      background: rgba(255, 255, 255, 0.01);
+      background-blend-mode: luminosity;
+      backdrop-filter: blur(50px);
+      -webkit-backdrop-filter: blur(50px);
+      border: none;
+      box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .liquid-glass-strong::before {
+      content: "";
+      position: absolute; 
+      inset: 0;
+      border-radius: inherit;
+      padding: 1.4px;
+      background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.5) 0%,
+        rgba(255, 255, 255, 0.2) 20%,
+        rgba(255, 255, 255, 0) 40%,
+        rgba(255, 255, 255, 0) 60%,
+        rgba(255, 255, 255, 0.2) 80%,
+        rgba(255, 255, 255, 0.5) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    /* Soft scrollbar for cinematic feel */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #000;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+  </style>
+</head>
+<body class="bg-black text-white font-body selection:bg-white selection:text-black">
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // Suppress benign Framer Motion / development list key errors in UI logs
+    const originalError = console.error;
+    console.error = (...args) => {
+      if (args[0] && typeof args[0] === 'string' && (args[0].includes('Framer Motion') || args[0].includes('React does not recognize'))) {
+        return;
+      }
+      originalError(...args);
+    };
+
+    const { motion, AnimatePresence } = window.Motion || window.FramerMotion || {};
+
+    // --- CUSTOM SVG ICONS (LUCIDE STYLE) ---
+    const ArrowUpRight = ({ className = "h-5 w-5" }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 17L17 7" />
+        <path d="M7 7h10v10" />
+      </svg>
+    );
+
+    const PlayIcon = ({ className = "h-4 w-4" }) => (
+      <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+        <polygon points="6,4 20,12 6,20" />
+      </svg>
+    );
+
+    const ClockIcon = () => (
+      <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+        <circle cx="12" cy="12" r="9" />
+        <polyline points="12 7 12 12 15 15" />
+      </svg>
+    );
+
+    const GlobeIcon = () => (
+      <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+        <circle cx="12" cy="12" r="9" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+    );
+
+    // --- STREAMING_CHUNK:Implementing FadingVideo (Strict Specs Custom JS Crossfade) ---
+    const FadingVideo = ({ src, className, style }) => {
+      const videoRef = React.useRef(null);
+      const rAFId = React.useRef(null);
+      const fadingOutRef = React.useRef(false);
+
+      // Custom fadeTo utilizing requestAnimationFrame reading style.opacity directly
+      const fadeTo = (target, duration) => {
+        if (rAFId.current) {
+          cancelAnimationFrame(rAFId.current);
+        }
+        
+        const video = videoRef.current;
+        if (!video) return;
+
+        // Reads current opacity directly from video element style, defaults to 0
+        const startOpacity = parseFloat(video.style.opacity) || 0;
+        const startTime = performance.now();
+
+        const step = (now) => {
+          const elapsed = now - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const currentOpacity = startOpacity + (target - startOpacity) * progress;
+          
+          video.style.opacity = currentOpacity.toFixed(3);
+
+          if (progress < 1) {
+            rAFId.current = requestAnimationFrame(step);
+          }
+        };
+
+        rAFId.current = requestAnimationFrame(step);
+      };
+
+      React.useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        // Set initial state
+        video.style.opacity = "0";
+
+        const handleLoadedData = () => {
+          video.style.opacity = "0";
+          video.play().catch(err => console.log("Auto-play blocked or interrupted:", err));
+          fadeTo(1, 500);
+        };
+
+        const handleTimeUpdate = () => {
+          const duration = video.duration;
+          const currentTime = video.currentTime;
+          
+          // Trigger fade out 0.55s before video ends
+          if (duration && !fadingOutRef.current) {
+            const timeLeft = duration - currentTime;
+            if (timeLeft <= 0.55 && timeLeft > 0) {
+              fadingOutRef.current = true;
+              fadeTo(0, 500);
+            }
+          }
+        };
+
+        const handleEnded = () => {
+          // Fade complete or forced; schedule reset and play
+          video.style.opacity = "0";
+          setTimeout(() => {
+            if (!videoRef.current) return;
+            videoRef.current.currentTime = 0;
+            videoRef.current.play().catch(err => console.log("Loop play interrupted:", err));
+            fadingOutRef.current = false;
+            fadeTo(1, 500);
+          }, 100);
+        };
+
+        video.addEventListener('loadeddata', handleLoadedData);
+        video.addEventListener('timeupdate', handleTimeUpdate);
+        video.addEventListener('ended', handleEnded);
+
+        // Fallback check if already loaded
+        if (video.readyState >= 2) {
+          handleLoadedData();
+        }
+
+        return () => {
+          if (rAFId.current) {
+            cancelAnimationFrame(rAFId.current);
+          }
+          video.removeEventListener('loadeddata', handleLoadedData);
+          video.removeEventListener('timeupdate', handleTimeUpdate);
+          video.removeEventListener('ended', handleEnded);
+        };
+      }, [src]);
+
+      return (
+        <video
+          ref={videoRef}
+          src={src}
+          className={className}
+          style={{ ...style, transition: 'none' }}
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+        />
+      );
+    };
+
+    // --- STREAMING_CHUNK:Implementing BlurText Component (Word-by-word visibility blur) ---
+    const BlurText = ({ text }) => {
+      const elementRef = React.useRef(null);
+      const [isVisible, setIsVisible] = React.useState(false);
+
+      React.useEffect(() => {
+        const observer = new IntersectionObserver(([entry]) => {
+          if (entry.intersectionRatio >= 0.10) {
+            setIsVisible(true);
+            observer.unobserve(entry.target);
+          }
+        }, { threshold: 0.10 });
+
+        if (elementRef.current) {
+          observer.observe(elementRef.current);
+        }
+
+        return () => observer.disconnect();
+      }, []);
+
+      const words = text.split(" ");
+
+      return (
+        <span 
+          ref={elementRef}
+          className="flex flex-wrap justify-center" 
+          style={{ rowGap: '0.1em' }}
+        >
+          {words.map((word, index) => {
+            const delay = (index * 100) / 1000;
+            return (
+              <motion.span
+                key={index}
+                initial={{ filter: 'blur(10px)', opacity: 0, y: 50 }}
+                animate={isVisible ? {
+                  filter: ['blur(10px)', 'blur(5px)', 'blur(0px)'],
+                  opacity: [0, 0.5, 1],
+                  y: [50, -5, 0]
+                } : {}}
+                transition={{
+                  duration: 0.7,
+                  times: [0, 0.5, 1],
+                  ease: "easeOut",
+                  delay: delay
+                }}
+                className="inline-block"
+                style={{ marginRight: '0.28em' }}
+              >
+                {word}
+              </motion.span>
+            );
+          })}
+        </span>
+      );
+    };
+
+    // --- STREAMING_CHUNK:Rendering Main App ---
+    function App() {
+      const heroEntranceTransition = { duration: 1.2, ease: [0.16, 1, 0.3, 1] };
+
+      return (
+        <div className="relative min-h-screen bg-black text-white selection:bg-white selection:text-black">
+          
+          {/* NAVIGATION BAR */}
+          <nav className="fixed top-4 inset-x-0 mx-auto max-w-7xl px-4 md:px-8 lg:px-16 z-50 flex items-center justify-between">
+            {/* Logo */}
+            <a href="#" className="w-12 h-12 flex items-center justify-center rounded-full liquid-glass transition-transform duration-300 hover:scale-105" aria-label="Aetheris Home">
+              <span className="font-heading italic text-2xl text-white select-none leading-none mt-1">a</span>
+            </a>
+
+            {/* Middle Nav Pill & Call-to-action (desktop only) */}
+            <div className="hidden md:flex items-center gap-3 py-1.5 px-1.5 rounded-full liquid-glass">
+              {['Home', 'Voyages', 'Worlds', 'Innovation', 'Plan Launch'].map((link) => (
+                <a 
+                  key={link} 
+                  href={`#${link.toLowerCase().replace(" ", "-")}`} 
+                  className="px-3 py-2 text-sm font-medium text-white/90 font-body hover:text-white transition-colors duration-200"
+                >
+                  {link}
+                </a>
+              ))}
+              <a 
+                href="#plan-launch" 
+                className="ml-2 flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white text-black text-sm font-semibold transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98] whitespace-nowrap"
+              >
+                Claim a Spot
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
+            </div>
+
+            {/* Mobile Actions Overlay Trigger */}
+            <div className="md:hidden flex items-center">
+              <a 
+                href="#plan-launch" 
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-xs font-semibold whitespace-nowrap transition-transform duration-300 hover:scale-105"
+              >
+                Claim Spot
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </a>
+            </div>
+
+            {/* Spacer to balance navbar width layout */}
+            <div className="w-12 h-12 invisible hidden md:block" />
+          </nav>
+
+          {}
+          <section id="home" className="relative w-full h-screen overflow-hidden flex flex-col justify-between">
+            {/* Custom Background Fading Video */}
+            <FadingVideo
+              src="https://github.com/weixubo281-code/my-videos02/raw/refs/heads/main/file1779265194054_343618.mp4"
+              className="absolute left-1/2 top-0 -translate-x-1/2 object-cover object-top z-0"
+              style={{ width: "120%", height: "120%" }}
+            />
+
+            {/* Hero Main Content Block */}
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center pt-24 px-4 text-center">
+              
+              {/* Animated Badge */}
+              <motion.div
+                initial={{ filter: "blur(10px)", opacity: 0, y: 20 }}
+                animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+                transition={{ ...heroEntranceTransition, delay: 0.4 }}
+                className="inline-flex items-center gap-2 p-1 pr-3 rounded-full liquid-glass text-xs text-white/90 select-none mb-6 max-w-full overflow-hidden"
+              >
+                <span className="bg-white text-black px-3 py-1 text-xs font-semibold rounded-full shrink-0">
+                  New
+                </span>
+                <span className="truncate font-body font-medium">Maiden Crewed Voyage to Mars Arrives 2026</span>
+              </motion.div>
+
+              {/* Animated Headline with Word-By-Word Blur Effect */}
+              <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-heading italic text-white leading-[0.85] max-w-3xl tracking-[-3px] md:tracking-[-4px] select-none">
+                <BlurText text="Venture Past Our Sky Across the Universe" />
+              </h1>
+
+              {/* Animated Subheading */}
+              <motion.p
+                initial={{ filter: "blur(10px)", opacity: 0, y: 20 }}
+                animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+                transition={{ ...heroEntranceTransition, delay: 0.8 }}
+                className="mt-6 text-sm md:text-base text-white/90 max-w-2xl font-body font-light leading-snug tracking-wide select-none"
+              >
+                Discover the universe in ways once unimaginable. Our pioneering vessels and breakthrough engineering bring deep-space exploration within reach—secure and extraordinary.
+              </motion.p>
+
+              {/* Animated Call To Actions */}
+              <motion.div
+                initial={{ filter: "blur(10px)", opacity: 0, y: 20 }}
+                animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+                transition={{ ...heroEntranceTransition, delay: 1.1 }}
+                className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mt-8 w-full justify-center px-4"
+              >
+                <a 
+                  href="#capabilities" 
+                  className="liquid-glass-strong w-full sm:w-auto text-center flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold text-white hover:scale-105 active:scale-95 transition-all duration-300"
+                >
+                  Start Your Voyage
+                  <ArrowUpRight className="h-5 w-5" />
+                </a>
+                
+                <a 
+                  href="#voyages" 
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white hover:opacity-85 active:scale-95 transition-all duration-300"
+                >
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 backdrop-blur-sm">
+                    <PlayIcon className="h-3.5 w-3.5 text-white" />
+                  </span>
+                  View Liftoff
+                </a>
+              </motion.div>
+
+              {/* Animated Space Exploration Stats */}
+              <motion.div
+                initial={{ filter: "blur(10px)", opacity: 0, y: 20 }}
+                animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+                transition={{ ...heroEntranceTransition, delay: 1.3 }}
+                className="flex flex-col sm:flex-row items-stretch gap-4 mt-12 w-full max-w-lg justify-center px-4"
+              >
+                {/* Stat 1 */}
+                <div className="liquid-glass p-5 w-full sm:w-[220px] rounded-[1.25rem] flex flex-col justify-between items-start text-left hover:scale-[1.02] transition-transform duration-300">
+                  <div className="mb-4">
+                    <ClockIcon />
+                  </div>
+                  <div>
+                    <div className="font-heading italic text-white text-4xl tracking-[-1px] leading-none">
+                      34.5 Min
+                    </div>
+                    <div className="text-xs text-white/80 font-body font-light mt-2 select-none">
+                      Average Videos Watch Time
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stat 2 */}
+                <div className="liquid-glass p-5 w-full sm:w-[220px] rounded-[1.25rem] flex flex-col justify-between items-start text-left hover:scale-[1.02] transition-transform duration-300">
+                  <div className="mb-4">
+                    <GlobeIcon />
+                  </div>
+                  <div>
+                    <div className="font-heading italic text-white text-4xl tracking-[-1px] leading-none">
+                      2.8B+
+                    </div>
+                    <div className="text-xs text-white/80 font-body font-light mt-2 select-none">
+                      Users Across the Globe
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+            </div>
+
+            {}
+            <motion.div
+              initial={{ filter: "blur(10px)", opacity: 0, y: 20 }}
+              animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+              transition={{ ...heroEntranceTransition, delay: 1.4 }}
+              className="relative z-10 flex flex-col items-center gap-5 pb-8 pt-6 select-none"
+            >
+              <div className="liquid-glass rounded-full px-4 py-1.5 text-[11px] font-medium tracking-wide text-white/80">
+                Collaborating with top aerospace pioneers globally
+              </div>
+              <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-3 px-6 text-white font-heading italic text-2xl md:text-3xl tracking-tight opacity-90">
+                <span>Aeon</span>
+                <span className="text-white/30 text-lg">·</span>
+                <span>Vela</span>
+                <span className="text-white/30 text-lg">·</span>
+                <span>Apex</span>
+                <span className="text-white/30 text-lg">·</span>
+                <span>Orbit</span>
+                <span className="text-white/30 text-lg">·</span>
+                <span>Zeno</span>
+              </div>
+            </motion.div>
+          </section>
+
+          {}
+          <section id="capabilities" className="relative min-h-screen bg-black overflow-hidden flex flex-col">
+            {/* Custom Background Fading Video */}
+            <FadingVideo
+              src="https://github.com/weixubo281-code/my-videos02/raw/refs/heads/main/file1779265580061_343939.mp4"
+              className="absolute inset-0 w-full h-full object-cover z-0"
+              style={{}}
+            />
+
+            {/* Content Container */}
+            <div className="relative z-10 px-6 md:px-16 lg:px-20 pt-28 pb-14 flex flex-col justify-between min-h-screen w-full max-w-7xl mx-auto">
+              
+              {/* Header Section */}
+              <div className="mb-auto">
+                <div className="text-sm font-body tracking-widest text-white/80 mb-3 select-none">
+                  // CAPABILITIES
+                </div>
+                <h2 className="font-heading italic text-white text-6xl md:text-7xl lg:text-[6rem] leading-[0.9] tracking-[-3px] select-none">
+                  Production<br />evolved
+                </h2>
+              </div>
+
+              {/* Three Liquid Glass Capabilities Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 w-full">
+                
+                {/* Card 1: AI Scenery */}
+                <div className="liquid-glass rounded-[1.25rem] p-6 min-h-[360px] flex flex-col justify-between hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300">
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between gap-4">
+                    {/* SVG Icon Square Frame */}
+                    <div className="w-11 h-11 rounded-[0.75rem] flex items-center justify-center liquid-glass text-white shrink-0">
+                      <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21H5Zm1-4h12l-3.75-5-3 4L9 13l-3 4Z" />
+                      </svg>
+                    </div>
+
+                    {/* Chips tags collection */}
+                    <div className="flex flex-wrap justify-end gap-1.5 max-w-[70%]">
+                      {["Natural Context", "Photo Realism", "Infinite Settings", "Eco-Vibe"].map(tag => (
+                        <span key={tag} className="liquid-glass rounded-full px-2.5 py-1 text-[10px] text-white/95 font-body tracking-tight whitespace-nowrap">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Spacer element */}
+                  <div className="flex-1" />
+
+                  {/* Card Footer Content */}
+                  <div className="mt-6 text-left">
+                    <h3 className="font-heading italic text-white text-3xl md:text-4xl tracking-[-1px] leading-none">
+                      AI Scenery
+                    </h3>
+                    <p className="mt-3 text-sm text-white/90 font-body font-light leading-snug max-w-[32ch]">
+                      AI analyzes your product to create indistinguishable natural environments — from Icelandic cliffs to misty forests.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 2: Batch Production */}
+                <div className="liquid-glass rounded-[1.25rem] p-6 min-h-[360px] flex flex-col justify-between hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300">
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between gap-4">
+                    {/* SVG Icon Square Frame */}
+                    <div className="w-11 h-11 rounded-[0.75rem] flex items-center justify-center liquid-glass text-white shrink-0">
+                      <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M4 6.47 5.76 10H20v8H4V6.47M22 4h-4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.89-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4Z" />
+                      </svg>
+                    </div>
+
+                    {/* Chips tags collection */}
+                    <div className="flex flex-wrap justify-end gap-1.5 max-w-[70%]">
+                      {["Scale Fast", "Visual Consistency", "Time Saver", "Ready to Post"].map(tag => (
+                        <span key={tag} className="liquid-glass rounded-full px-2.5 py-1 text-[10px] text-white/95 font-body tracking-tight whitespace-nowrap">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Spacer element */}
+                  <div className="flex-1" />
+
+                  {/* Card Footer Content */}
+                  <div className="mt-6 text-left">
+                    <h3 className="font-heading italic text-white text-3xl md:text-4xl tracking-[-1px] leading-none">
+                      Batch Production
+                    </h3>
+                    <p className="mt-3 text-sm text-white/90 font-body font-light leading-snug max-w-[32ch]">
+                      Style your entire product line in minutes. Create a unified visual identity for catalogues and social media without weeks of retouching.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 3: Smart Lighting */}
+                <div className="liquid-glass rounded-[1.25rem] p-6 min-h-[360px] flex flex-col justify-between hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300">
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between gap-4">
+                    {/* SVG Icon Square Frame */}
+                    <div className="w-11 h-11 rounded-[0.75rem] flex items-center justify-center liquid-glass text-white shrink-0">
+                      <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1Zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7Z" />
+                      </svg>
+                    </div>
+
+                    {/* Chips tags collection */}
+                    <div className="flex flex-wrap justify-end gap-1.5 max-w-[70%]">
+                      {["Ray Tracing", "Physical Shadows", "Studio Quality", "Sunlight Sync"].map(tag => (
+                        <span key={tag} className="liquid-glass rounded-full px-2.5 py-1 text-[10px] text-white/95 font-body tracking-tight whitespace-nowrap">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Spacer element */}
+                  <div className="flex-1" />
+
+                  {/* Card Footer Content */}
+                  <div className="mt-6 text-left">
+                    <h3 className="font-heading italic text-white text-3xl md:text-4xl tracking-[-1px] leading-none">
+                      Smart Lighting
+                    </h3>
+                    <p className="mt-3 text-sm text-white/90 font-body font-light leading-snug max-w-[32ch]">
+                      Automatic lighting and material adjustment. Achieve flawless integration with realistic shadows and sunlight.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </section>
+
+          {}
+          <footer className="bg-black py-10 border-t border-white/5 relative z-10 text-center text-xs text-white/40 font-body select-none">
+            <p className="mb-2">© 2026 AETHERIS Aerospace Technologies. Developed for Cinematic Exploration.</p>
+            <p>Designed with liquid-glass design systems & frame-accurate crossfading video loops.</p>
+          </footer>
+
+        </div>
+      );
+    }
+
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
+    root.render(<App />);
+  </script>
+</body>
+</html>
